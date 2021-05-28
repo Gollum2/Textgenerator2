@@ -38,6 +38,7 @@ class Ui_MainWindow(object):
         self.model = None
         self.vocablenint = 85
         self.funktion = 2
+        self.pathtohp="data/hp.txt"
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -323,7 +324,11 @@ class Ui_MainWindow(object):
         BASENAME = os.path.basename(FILE_PATH)
 
         text = self.inputtext.toPlainText()
-
+        if (len(text) <= sequence_length*batchsize):
+            print("fehlern fehler fehler")
+            self.inputtext.append("bitte text eingeben")
+            print("ffffffffffffffff")
+            return
         if (self.checkboxlower.isChecked()):
             text = text.lower()
         if (self.checkbox.isChecked()):
@@ -440,6 +445,11 @@ class Ui_MainWindow(object):
             learningrate = 0.001
         self.progressBar_7.setMaximum(10)
         text = self.inputtext.toPlainText()
+        if (len(text) <= sequence_length * batchsize):
+            print("fehlern fehler fehler")
+            self.inputtext.append("bitte text eingeben")
+            print("ffffffffffffffff")
+            return
         if (self.checkboxlower.isChecked()):
             text = text.lower()
         if (self.checkbox.isChecked()):
@@ -599,25 +609,19 @@ class Ui_MainWindow(object):
         self.progressBar_8.setMaximum(EPOCHS)
         self.progressBar_7.setMaximum(10)
         # dataset file path
+        text = self.inputtext.toPlainText()
         print("sucsessuflly read", self.progressBar.value())
-        FILE_PATH = "virus.txt"
-        f = open(FILE_PATH, "w")
         print("vor inputtext")
-        tx = self.inputtext.toPlainText()
-        if (len(tx) <= sequence_length):
+        if (len(text) <= sequence_length*BATCH_SIZE):
             print("fehlern fehler fehler")
             self.inputtext.append("bitte text eingeben")
             print("ffffffffffffffff")
             return
-        print("nach inputtext", tx)
-        f.write(tx)
-        f.close()
-        print("moin debugging")
         # read the data
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
-        BASENAME = os.path.basename(FILE_PATH)
+        BASENAME = os.path.basename(self.pahttohp)
         print("lost")
-        text = open(FILE_PATH).read()
+
         # remove caps, comment this code if you want uppercase characters as well
         if (self.checkboxlower.isChecked()):
             text = text.lower()
@@ -726,12 +730,32 @@ class Ui_MainWindow(object):
         self.model = model
 
     def generate(self):
-        t = threading.Thread(target=self.generate4, daemon=True)
-        self.textEditgenerated.clear()
-        t.start()
+        if (self.funktion == 2):
+            t = threading.Thread(target=self.generate2, daemon=True)
+            t.start()
+        elif (self.funktion == 3):
+            t = threading.Thread(target=self.generate3(), daemon=True)
+            t.start()
+        elif (self.funktion == 4):
+            t = threading.Thread(target=self.generate4(), daemon=True)
+            t.start()
+        else:
+            print("No funktion selected generator")
 
     def generate4(self):
-
+        try:
+            sequence_length = int(self.linesequenzlange.text())
+            batchsize = int(self.linebatchsize.text())
+            epochen = int(self.lineepochen.text())
+            temperatur = float(self.tempregler.value() / 1000)
+            bufsize = int(self.buffersize.text())
+            learningrate = temperatur
+        except:
+            self.lineepochen.setText(str(50))
+            self.linesequenzlange.setText(str(100))
+            self.linebatchsize.setText(str(128))
+            self.textEditgenerated.append("Bitte gültige Werte eingeben")
+            return
         # dataset file path
         FILE_PATH = "data/hp.txt"
         # FILE_PATH = "data/python_code.py"
@@ -740,15 +764,15 @@ class Ui_MainWindow(object):
         char2int = pickle.load(open(f"{BASENAME}-char2int.pickle", "rb"))
         int2char = pickle.load(open(f"{BASENAME}-int2char.pickle", "rb"))
 
-        sequence_length = self.sequenzlangesave = 100
+        sequence_length = sequence_length
         vocab_size = len(char2int)
 
         # building the model
         model = Sequential([
             LSTM(256, input_shape=(sequence_length, vocab_size), return_sequences=True),
-            Dropout(0.3),
+            Dropout(temperatur),
             LSTM(256, return_sequences=True),
-            Dropout(0.3),
+            Dropout(temperatur),
             LSTM(256),
             Dense(vocab_size, activation="softmax"),
         ])
