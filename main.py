@@ -37,8 +37,8 @@ class Ui_MainWindow(object):
         self.int2char = {}
         self.model = None
         self.vocablenint = 85
-        self.funktion = 2
-        self.pathtohp="data/hp.txt"
+        self.funktion = 3
+        self.pathtohp = "data/hp.txt"
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -188,6 +188,14 @@ class Ui_MainWindow(object):
         self.settingsinteration = QtWidgets.QLineEdit(self.tab_2)
         self.settingsinteration.setGeometry(QtCore.QRect(150, 30, 113, 31))
         self.settingsinteration.setObjectName("lineEdit")
+        self.outputlenth = QtWidgets.QLineEdit(self.tab_2)
+        self.outputlenth.setGeometry(QtCore.QRect(150, 80, 113, 31))
+        self.outputlenth.setObjectName("outlenthline")
+        self.outputlenth.setText("1000")
+        self.labeloutputlen = QtWidgets.QLabel(self.tab_2)
+        self.labeloutputlen.setGeometry(QtCore.QRect(50, 80, 150, 30))
+        self.labeloutputlen.setObjectName("labeafdsl_8")
+        self.labeloutputlen.setText("Outputlenght")
         self.tabWidget.addTab(self.tab_2, "")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
@@ -224,16 +232,18 @@ class Ui_MainWindow(object):
     def updatefunktion(self):
         print("updatefuntion")
         try:
-            a=self.settingsinteration.text()
-            b=int(a)
-            if(b==2 or b==3 or b==4):
-                self.funktion=b
+            a = self.settingsinteration.text()
+            b = int(a)
+            if (b == 2 or b == 3 or b == 4):
+                self.funktion = b
             else:
                 self.funktion = 0
                 self.settingsinteration.setText("3")
         except:
-            self.funktion=0
+            self.funktion = 0
+            print("An error occured")
             self.settingsinteration.setText("3")
+        print(self.funktion, "ist die ausgewählte funktion")
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -260,7 +270,7 @@ class Ui_MainWindow(object):
         self.label_6.setText(_translate("MainWindow", "TextLabel"))
         self.label_7.setText(_translate("MainWindow", "TextLabel"))
         self.label_8.setText(_translate("MainWindow", "TextLabel"))
-        self.settingsinteration.setText("1000adsfa")
+        self.settingsinteration.setText("3")
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.Maintab), _translate("MainWindow", "MainTab"))
         self.pushButton.setText(_translate("MainWindow", "Apply"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "Settings"))
@@ -324,7 +334,7 @@ class Ui_MainWindow(object):
         BASENAME = os.path.basename(FILE_PATH)
 
         text = self.inputtext.toPlainText()
-        if (len(text) <= sequence_length*batchsize):
+        if (len(text) <= sequence_length * batchsize):
             print("fehlern fehler fehler")
             self.inputtext.append("bitte text eingeben")
             print("ffffffffffffffff")
@@ -574,15 +584,16 @@ class Ui_MainWindow(object):
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
         print("leaarning rage : ", learningrate)
         model.compile(optimizer="adam", loss=loss)
+        print("ffffffffffff")
         # Directory where the checkpoints will be saved
         checkpoint_dir = './training_checkpoints'
         # Name of the checkpoint files
         EPOCHS = epochen
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
-        c = [CustomCallback(self.progressBar_9, self.progressBar_8)]
-        history = model.fit(dataset, epochs=EPOCHS, callbacks=c)
+        print("aaaaaaaaaaaa")
         self.model = model
-        model.save_weights("weights.ckpt")
+        print("testasadsfa")
+        #model.save_weights("weights.ckpt")
         # model.save("modelol", save_format="tf")
         # self.char2int = ids_from_chars
         self.int2char = chars_from_ids
@@ -612,14 +623,14 @@ class Ui_MainWindow(object):
         text = self.inputtext.toPlainText()
         print("sucsessuflly read", self.progressBar.value())
         print("vor inputtext")
-        if (len(text) <= sequence_length*BATCH_SIZE):
+        if (len(text) <= sequence_length * BATCH_SIZE):
             print("fehlern fehler fehler")
             self.inputtext.append("bitte text eingeben")
             print("ffffffffffffffff")
             return
         # read the data
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
-        BASENAME = os.path.basename(self.pahttohp)
+        BASENAME = os.path.basename(self.pathtohp)
         print("lost")
 
         # remove caps, comment this code if you want uppercase characters as well
@@ -750,6 +761,7 @@ class Ui_MainWindow(object):
             temperatur = float(self.tempregler.value() / 1000)
             bufsize = int(self.buffersize.text())
             learningrate = temperatur
+            lenght = int(self.outputlenth.text())
         except:
             self.lineepochen.setText(str(50))
             self.linesequenzlange.setText(str(100))
@@ -804,9 +816,14 @@ class Ui_MainWindow(object):
         print("Seed:", s)
         print("Generated text:")
         print(generated)
+        self.textEditgenerated.setText(generated)
 
     def generate3(self):
-
+        try:
+            lenght = int(self.outputlenth.text())
+        except:
+            print("bitte richtige werte eingeben")
+            return
         chars_from_ids = self.int2char
         ids_from_chars = self.char2int
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
@@ -884,7 +901,12 @@ class Ui_MainWindow(object):
         model.compile(optimizer="adam", loss="categorical_crossentropy")
         """
         model = self.model
-        a = self.inputtext.toPlainText().split(" ")
+        text = self.inputtext.toPlainText()
+        if (self.checkboxlower.isChecked()):
+            text = text.lower()
+        if (self.checkbox.isChecked()):
+            text = text.translate(str.maketrans("", "", punctuation))
+        a = text.split(" ")
         seed = a[random.randint(0, len(a))]
         print("Seed", seed)
         print("model created")
