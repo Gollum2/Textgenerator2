@@ -78,6 +78,10 @@ class Ui_MainWindow(object):
         self.progressBar_9.setGeometry(QtCore.QRect(10, 520, 118, 23))
         self.progressBar_9.setProperty("value", 24)
         self.progressBar_9.setObjectName("progressBar_9")
+        self.progressBar = QtWidgets.QProgressBar(self.frame)
+        self.progressBar.setGeometry(QtCore.QRect(10, 550, 118, 23))
+        self.progressBar.setProperty("value", 24)
+        self.progressBar.setObjectName("progressBar")
         self.labelanalyzetext = QtWidgets.QLabel(self.frame)
         self.labelanalyzetext.setGeometry(QtCore.QRect(140, 460, 121, 21))
         self.labelanalyzetext.setObjectName("labelanalyzetext")
@@ -127,10 +131,6 @@ class Ui_MainWindow(object):
         self.buttongenerate.setGeometry(QtCore.QRect(650, 520, 93, 28))
         self.buttongenerate.setObjectName("buttongenerate")
         self.buttongenerate.clicked.connect(self.generate)
-        self.progressBar = QtWidgets.QProgressBar(self.frame)
-        self.progressBar.setGeometry(QtCore.QRect(10, 550, 118, 23))
-        self.progressBar.setProperty("value", 24)
-        self.progressBar.setObjectName("progressBar")
         self.labelgeneratetext = QtWidgets.QLabel(self.frame)
         self.labelgeneratetext.setGeometry(QtCore.QRect(140, 550, 101, 16))
         self.labelgeneratetext.setObjectName("labelgeneratetext")
@@ -234,7 +234,7 @@ class Ui_MainWindow(object):
         try:
             a = self.settingsinteration.text()
             b = int(a)
-            if (b == 2 or b == 3 or b == 4):
+            if (b == 2 or b == 3 or b == 4 or b == 5):
                 self.funktion = b
             else:
                 self.funktion = 0
@@ -298,6 +298,10 @@ class Ui_MainWindow(object):
             self.label_8.setText("0")
 
     def learn(self):
+        f = open("data/data.txt",mode="w",encoding="utf-8")
+        f.write(self.inputtext.toPlainText(),)
+        f.close()
+        print("file copy finisched")
         if (self.funktion == 2):
             t = threading.Thread(target=self.learn2, daemon=True)
             t.start()
@@ -307,8 +311,12 @@ class Ui_MainWindow(object):
         elif (self.funktion == 4):
             t = threading.Thread(target=self.learn4, daemon=True)
             t.start()
+        elif (self.funktion == 5):
+            t = threading.Thread(target=self.learn5, daemon=True)
+            t.start()
         else:
             print("No funktion selected")
+
 
     def learn4(self):
         try:
@@ -446,10 +454,7 @@ class Ui_MainWindow(object):
             self.textEditgenerated.append("Bitte gültige Werte eingeben")
             return
         self.progressBar.setValue(0)
-        self.progressBar_7.setValue(0)
-        self.progressBar_8.setValue(0)
-        self.progressBar_9.setValue(0)
-        self.progressBar_8.setMaximum(epochen)
+
         # self.progressBar_9.setMaximum((len(encoded_text) - sequence_length) // BATCH_SIZE)
         if (learningrate == 0):
             learningrate = 0.001
@@ -585,15 +590,14 @@ class Ui_MainWindow(object):
         print("leaarning rage : ", learningrate)
         model.compile(optimizer="adam", loss=loss)
         print("ffffffffffff")
-        # Directory where the checkpoints will be saved
-        checkpoint_dir = './training_checkpoints'
-        # Name of the checkpoint files
+        c=CustomCallback(self.progressBar_8,self.progressBar_9,epochen,len(text)//sequence_length//batchsize-1)
+        model.fit(dataset,epochs=epochen,callbacks=c)
         EPOCHS = epochen
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
         print("aaaaaaaaaaaa")
         self.model = model
         print("testasadsfa")
-        #model.save_weights("weights.ckpt")
+        # model.save_weights("weights.ckpt")
         # model.save("modelol", save_format="tf")
         # self.char2int = ids_from_chars
         self.int2char = chars_from_ids
@@ -690,7 +694,7 @@ class Ui_MainWindow(object):
             return ds
 
         # prepare inputs and targets
-        print("Flat map")
+        print("Flat map", sequences, split_sample)
         dataset = sequences.flat_map(split_sample)
         print("value errror be flat map")
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
@@ -739,6 +743,112 @@ class Ui_MainWindow(object):
         self.char2int = char2int
         self.int2char = int2char
         self.model = model
+
+    def learn5(self):
+        print("learn5")
+        self.progressBar_7.setMaximum(10)
+        try:
+            sl = int(self.linesequenzlange.text())
+            bs = int(self.linebatchsize.text())
+            e = int(self.lineepochen.text())
+            temperatur = float(self.tempregler.value() / 1000)
+            buffs = int(self.buffersize.text())
+            l = int(self.outputlenth.text())
+        except:
+            self.lineepochen.setText(str(50))
+            self.linesequenzlange.setText(str(100))
+            self.linebatchsize.setText(str(128))
+            self.textEditgenerated.append("Bitte gültige Werte eingeben")
+            return
+        sequence_length = sl
+        BATCH_SIZE = bs
+        EPOCHS = e
+        # dataset file path
+        FILE_PATH = "data/data.txt"
+        BASENAME = os.path.basename(FILE_PATH)
+        # read the data
+        text = open(FILE_PATH, encoding="utf-8").read()
+        if (len(text) <= sequence_length * BATCH_SIZE):
+            self.inputtext.append("bitte text eingeben")
+            return
+        self.progressBar_7.setValue(self.progressBar_7.value() + 1)
+        if (self.checkboxlower.isChecked()):
+            text = text.lower()
+        if (self.checkbox.isChecked()):
+            text = text.translate(str.maketrans("", "", punctuation))
+        n_chars = len(text)
+        vocab = ''.join(sorted(set(text)))
+        unique_chars = vocab
+        print("unique_chars:", vocab)
+        n_unique_chars = len(vocab)
+        print("Number of characters:", n_chars)
+        print("Number of unique characters:", n_unique_chars)
+        # dictionary that converts characters to integers
+        char2int = {c: i for i, c in enumerate(unique_chars)}
+        # dictionary that converts integers to characters
+        int2char = {i: c for i, c in enumerate(unique_chars)}
+        self.progressBar_7.setValue(self.progressBar_7.value() + 1)
+        pickle.dump(char2int, open(f"{BASENAME}-char2int.pickle", "wb"))
+        pickle.dump(int2char, open(f"{BASENAME}-int2char.pickle", "wb"))
+        encoded_text = np.array([char2int[c] for c in text])
+        char_dataset = tf.data.Dataset.from_tensor_slices(encoded_text)
+        self.progressBar_7.setValue(self.progressBar_7.value() + 1)
+        for char in char_dataset.take(8):  # test output
+            print(char.numpy(), int2char[char.numpy()])
+        sequences = char_dataset.batch(2 * sequence_length + 1, drop_remainder=True)
+        for sequence in sequences.take(2):  # test output sequenzen
+            print(''.join([int2char[i] for i in sequence.numpy()]))
+            print("sequenzene")
+        self.progressBar_7.setValue(self.progressBar_7.value() + 1)
+
+        def split_sample(sample):
+            ds = tf.data.Dataset.from_tensors((sample[:sequence_length], sample[sequence_length]))
+            for i in range(1, (len(sample) - 1) // 2):
+                input_ = sample[i: i + sequence_length]
+                target = sample[i + sequence_length]
+                # extend the dataset with these samples by concatenate() method
+                other_ds = tf.data.Dataset.from_tensors((input_, target))
+                ds = ds.concatenate(other_ds)
+            return ds
+
+        dataset = sequences.flat_map(split_sample)
+        print("after flatmap")
+        self.progressBar_7.setValue(self.progressBar_7.value() + 1)
+
+        def one_hot_samples(input_, target):
+            # onehot encode the inputs and the targets
+            return tf.one_hot(input_, n_unique_chars), tf.one_hot(target, n_unique_chars)
+
+        self.progressBar_7.setValue(self.progressBar_7.value() + 1)
+        dataset = dataset.map(one_hot_samples)
+        for element in dataset.take(2):
+            print("Input:", ''.join([int2char[np.argmax(char_vector)] for char_vector in element[0].numpy()]))
+            print("Target:", int2char[np.argmax(element[1].numpy())])
+            print("Input shape:", element[0].shape)
+            print("Target shape:", element[1].shape)
+        ds = dataset.repeat().shuffle(1024).batch(BATCH_SIZE, drop_remainder=True)
+        self.progressBar_7.setValue(self.progressBar_7.value() + 1)
+        model = Sequential([
+            LSTM(256, input_shape=(sequence_length, n_unique_chars), return_sequences=True),
+            Dropout(temperatur),
+            LSTM(256, return_sequences=True),
+            Dropout(temperatur),
+            LSTM(265),
+            Dense(n_unique_chars, activation="softmax"),
+        ])
+        self.progressBar_7.setValue(self.progressBar_7.value() + 1)
+        model.compile(optimizer="adam", loss="categorical_crossentropy")
+        self.progressBar_7.setValue(self.progressBar_7.value() + 1)
+        if not os.path.isdir("results"):
+            os.mkdir("results")
+        # train the model
+        self.progressBar_7.setValue(self.progressBar_7.value() + 1)
+
+        c=CustomCallback(self.progressBar_8, self.progressBar_9,EPOCHS,(len(encoded_text) - sequence_length) // BATCH_SIZE)
+        model.fit(ds, steps_per_epoch=(len(encoded_text) - sequence_length) // BATCH_SIZE, epochs=EPOCHS,
+                  callbacks=c)
+        model.save(f"results/{BASENAME}-{sequence_length}.h5")
+        print("ende")
 
     def generate(self):
         if (self.funktion == 2):
@@ -798,6 +908,62 @@ class Ui_MainWindow(object):
         # generate 400 characters
         generated = seed + ""
         for i in tqdm.tqdm(range(n_chars), "Generating text"):
+            # make the input sequence
+            X = np.zeros((1, sequence_length, vocab_size))
+            for t, char in enumerate(seed):
+                X[0, (sequence_length - len(seed)) + t, char2int[char]] = 1
+            # predict the next character
+            predicted = model.predict(X, verbose=0)[0]
+            # converting the vector to an integer
+            next_index = np.argmax(predicted)
+            # converting the integer to a character
+            next_char = int2char[next_index]
+            # add the character to results
+            generated += next_char
+            # shift seed and the predicted character
+            seed = seed[1:] + next_char
+
+        print("Seed:", s)
+        print("Generated text:")
+        print(generated)
+        self.textEditgenerated.setText(generated)
+
+    def generate5(self):
+        try:
+            sl = int(self.linesequenzlange.text())
+            bs = int(self.linebatchsize.text())
+            e = int(self.lineepochen.text())
+            temperatur = float(self.tempregler.value() / 1000)
+            bs = int(self.buffersize.text())
+            br = temperatur
+            l = int(self.outputlenth.text())
+        except:
+            self.lineepochen.setText(str(50))
+            self.linesequenzlange.setText(str(100))
+            self.linebatchsize.setText(str(128))
+            self.textEditgenerated.append("Bitte gültige Werte eingeben")
+            return
+        sequence_length = sl
+        # dataset file path
+        FILE_PATH = "data/data.txt"
+        # FILE_PATH = "data/python_code.py"
+        BASENAME = os.path.basename(FILE_PATH)
+
+        seed = "seed"
+        char2int = pickle.load(open(f"{BASENAME}-char2int.pickle", "rb"))
+        int2char = pickle.load(open(f"{BASENAME}-int2char.pickle", "rb"))
+        vocab_size = len(char2int)
+        model = Sequential([
+            LSTM(256, input_shape=(sequence_length, vocab_size), return_sequences=True),
+            Dropout(0.1),
+            LSTM(256, return_sequences=True),
+            Dropout(0.1),
+            Dense(vocab_size, activation="softmax"),
+        ])
+        model.load_weights(f"results/{BASENAME}-{sequence_length}.h5")
+        s = seed
+        generated = ""
+        for i in tqdm.tqdm(range(l), "Generating text"):
             # make the input sequence
             X = np.zeros((1, sequence_length, vocab_size))
             for t, char in enumerate(seed):
@@ -978,11 +1144,12 @@ class Ui_MainWindow(object):
 
 
 class CustomCallback(keras.callbacks.Callback):
-    def __init__(self, p1, p2):
+    def __init__(self, pboben, unten,max1,max2):
         super().__init__()
-        self.pb1 = p1
-        self.pb2 = p2
-
+        self.pb1 = pboben
+        self.pb2 = unten
+        self.pb2.setMaximum(max2)
+        self.pb1.setMaximum(max1)
     """
     def on_train_begin(self, logs=None):
         keys = list(logs.keys())
@@ -996,12 +1163,12 @@ class CustomCallback(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         keys = list(logs.keys())
         print("End epoch {} of training; got log keys: {}".format(epoch, keys))
-        self.pb2.setValue(epoch + 1)
+        self.pb1.setValue(epoch + 1)
 
     def on_train_batch_end(self, batch, logs=None):
         keys = list(logs.keys())
-        print("...Training: end of batch {}; got log keys: {}".format(batch, keys))
-        self.pb1.setValue(batch + 1)
+        #print("...Training: end of batch {}; got log keys: {}".format(batch, keys))
+        self.pb2.setValue(batch + 1)
 
 
 class MyModel(tf.keras.Model):
