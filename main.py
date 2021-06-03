@@ -230,7 +230,7 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def updatefunktion(self):
-        print("updatefuntion")
+        #print("updatefuntion")
         try:
             a = self.settingsinteration.text()
             b = int(a)
@@ -343,9 +343,9 @@ class Ui_MainWindow(object):
 
         text = self.inputtext.toPlainText()
         if (len(text) <= sequence_length * batchsize):
-            print("fehlern fehler fehler")
+            #print("fehlern fehler fehler")
             self.inputtext.append("bitte text eingeben")
-            print("ffffffffffffffff")
+            #print("ffffffffffffffff")
             return
         if (self.checkboxlower.isChecked()):
             text = text.lower()
@@ -358,20 +358,15 @@ class Ui_MainWindow(object):
         print("Number of characters:", n_chars)
         print("Number of unique characters:", n_unique_chars)
 
-        # dictionary that converts characters to integers
         char2int = {c: i for i, c in enumerate(vocab)}
-        # dictionary that converts integers to characters
         int2char = {i: c for i, c in enumerate(vocab)}
 
-        # save these dictionaries for later generation
         pickle.dump(char2int, open(f"{BASENAME}-char2int.pickle", "wb"))
         pickle.dump(int2char, open(f"{BASENAME}-int2char.pickle", "wb"))
 
-        # convert all text into integers
         encoded_text = np.array([char2int[c] for c in text])
-        # construct tf.data.Dataset object
         char_dataset = tf.data.Dataset.from_tensor_slices(encoded_text)
-        # print first 5 characters
+
         for char in char_dataset.take(8):
             print(char.numpy(), int2char[char.numpy()])
 
@@ -383,31 +378,20 @@ class Ui_MainWindow(object):
             print(''.join([int2char[i] for i in sequence.numpy()]))
 
         def split_sample(sample):
-            # example :
-            # sequence_length is 10
-            # sample is "python is a great pro" (21 length)
-            # ds will equal to ('python is ', 'a') encoded as integers
             ds = tf.data.Dataset.from_tensors((sample[:sequence_length], sample[sequence_length]))
             for i in range(1, (len(sample) - 1) // 2):
-                # first (input_, target) will be ('ython is a', ' ')
-                # second (input_, target) will be ('thon is a ', 'g')
-                # third (input_, target) will be ('hon is a g', 'r')
-                # and so on
                 input_ = sample[i: i + sequence_length]
                 target = sample[i + sequence_length]
-                # extend the dataset with these samples by concatenate() method
                 other_ds = tf.data.Dataset.from_tensors((input_, target))
                 ds = ds.concatenate(other_ds)
             return ds
 
-        # prepare inputs and targets
         dataset = sequences.flat_map(split_sample)
 
         def one_hot_samples(input_, target):
             return tf.one_hot(input_, n_unique_chars), tf.one_hot(target, n_unique_chars)
 
         dataset = dataset.map(one_hot_samples)
-        # print first 2 samples
         for element in dataset.take(2):
             print("Input:", ''.join([int2char[np.argmax(char_vector)] for char_vector in element[0].numpy()]))
             print("Target:", int2char[np.argmax(element[1].numpy())])
@@ -426,14 +410,12 @@ class Ui_MainWindow(object):
             Dense(n_unique_chars, activation="softmax"),
         ])
 
-        # model.load_weights(f"results/{BASENAME}-{sequence_length}.h5")
 
         model.summary()
         model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
 
         if not os.path.isdir("results"):
             os.mkdir("results")
-        # checkpoint = ModelCheckpoint("results/{}-{loss:.2f}.h5".format(BASENAME), verbose=1)
         model.fit(ds, steps_per_epoch=(len(encoded_text) - sequence_length) // BATCH_SIZE, epochs=EPOCHS)
         model.save(f"results/{BASENAME}-{sequence_length}.h5")
         print("finischend")
@@ -461,9 +443,7 @@ class Ui_MainWindow(object):
         self.progressBar_7.setMaximum(10)
         text = self.inputtext.toPlainText()
         if (len(text) <= sequence_length * batchsize):
-            print("fehlern fehler fehler")
             self.inputtext.append("bitte text eingeben")
-            print("ffffffffffffffff")
             return
         if (self.checkboxlower.isChecked()):
             text = text.lower()
@@ -481,11 +461,7 @@ class Ui_MainWindow(object):
         ids_from_chars = tf.keras.layers.experimental.preprocessing.StringLookup(vocabulary=list(vocab))
         print(len(ids_from_chars.get_vocabulary()), "länge vocab sure")
 
-        # open("data.txt").write((str(len(ids_from_chars.get_vocabulary()))))
         self.char2int = ids_from_chars
-        # string lookup erstellt einen layer auf dem das Vocabular einer zahl zugeordnert wird
-        # zur ausgabe braucht es layer(data) data-> tf.constrant([["a","b","c"],["u","f","g"]])
-        # liste wie oben nur mit +1 an jeder stelle und starut bei 1
         ids = ids_from_chars(chars)
         print(ids)
         chars_from_ids = tf.keras.layers.experimental.preprocessing.StringLookup(
@@ -496,7 +472,6 @@ class Ui_MainWindow(object):
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
         tf.strings.reduce_join(chars, axis=-1).numpy()
 
-        # array([b'abcdefg', b'xyz'], dtype=object)
 
         def text_from_ids(ids):
             return tf.strings.reduce_join(chars_from_ids(ids), axis=-1)
@@ -506,9 +481,6 @@ class Ui_MainWindow(object):
         print(all_ids, "alle ids hopefully good ")
         ids_dataset = tf.data.Dataset.from_tensor_slices(
             all_ids)  # in ids_dataset ist der gesamte text codiert in integer dargelegt
-        # print(list(ids_dataset.as_numpy_iterator()))
-        # for ids in ids_dataset.take(100): #ausgabe der ersten x zeichen und umcodieren zu utf8
-        #    print(chars_from_ids(ids).numpy().decode('utf-8'))
 
         seq_length = sequence_length  # wie viele zeichen man beachten muss
         examples_per_epoch = len(text) // (
@@ -518,12 +490,6 @@ class Ui_MainWindow(object):
         sequences = ids_dataset.batch(seq_length + 1,
                                       drop_remainder=True)  # man kann viel mehr sequenzen erstelln wenn man will
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
-
-        # for seq in sequences.take(1):
-        #    print(chars_from_ids(seq), "seqenzen", seq)
-
-        # for seq in sequences.take(5):  # ausgabe der erste 5 sequenzen
-        #    print(text_from_ids(seq).numpy())
         def split_input_target(
                 sequence):  # teilt ein segment auf in input vo der letzte fehlt und output( target) wo das erste fehlt dafür der letzt steht
             input_text = sequence[:-1]
@@ -532,17 +498,9 @@ class Ui_MainWindow(object):
 
         dataset = sequences.map(split_input_target)
 
-        # for input_example, target_example in dataset.take(1):
-        #    print("Input :", text_from_ids(input_example).numpy())
-        #    print("Target:", text_from_ids(target_example).numpy())
 
-        # Batch size
         BATCH_SIZE = batchsize  # wie viele dinger getestet werden bevor sachen geupdated werden r
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
-        # Buffer size to shuffle the dataset
-        # (TF data is designed to work with possibly infinite sequences,
-        # so it doesn't attempt to shuffle the entire sequence in memory. Instead,
-        # it maintains a buffer in which it shuffles elements).
         BUFFER_SIZE = bufsize
 
         dataset = (
@@ -550,15 +508,12 @@ class Ui_MainWindow(object):
                 .shuffle(BUFFER_SIZE)
                 .batch(BATCH_SIZE, drop_remainder=True)
                 .prefetch(tf.data.experimental.AUTOTUNE))
-        # Length of the vocabulary in chars
         vocab_size = len(vocab)
-        # The embedding dimension
         embedding_dim = 256
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
         # Number of RNN units
         rnn_units = 1024
         model = MyModel(
-            # Be sure the vocabulary size matches the `StringLookup` layers.
             vocab_size=len(ids_from_chars.get_vocabulary()),
             embedding_dim=embedding_dim,
             rnn_units=rnn_units)
@@ -589,20 +544,13 @@ class Ui_MainWindow(object):
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
         print("leaarning rage : ", learningrate)
         model.compile(optimizer="adam", loss=loss)
-        print("ffffffffffff")
         c=CustomCallback(self.progressBar_8,self.progressBar_9,epochen,len(text)//sequence_length//batchsize-1)
         model.fit(dataset,epochs=epochen,callbacks=c)
         EPOCHS = epochen
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
-        print("aaaaaaaaaaaa")
         self.model = model
-        print("testasadsfa")
-        # model.save_weights("weights.ckpt")
-        # model.save("modelol", save_format="tf")
-        # self.char2int = ids_from_chars
         self.int2char = chars_from_ids
-        # self.char2int=ids_from_chars
-        print("endeeeee")
+        print("ende")
 
     def learn2(self):
         try:
@@ -620,10 +568,8 @@ class Ui_MainWindow(object):
         self.progressBar_7.setValue(0)
         self.progressBar_8.setValue(0)
         self.progressBar_9.setValue(0)
-        # self.progressBar_9.setMaximum((len(encoded_text) - sequence_length) // BATCH_SIZE)
         self.progressBar_8.setMaximum(EPOCHS)
         self.progressBar_7.setMaximum(10)
-        # dataset file path
         text = self.inputtext.toPlainText()
         print("sucsessuflly read", self.progressBar.value())
         print("vor inputtext")
@@ -632,12 +578,10 @@ class Ui_MainWindow(object):
             self.inputtext.append("bitte text eingeben")
             print("ffffffffffffffff")
             return
-        # read the data
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
         BASENAME = os.path.basename(self.pathtohp)
         print("lost")
 
-        # remove caps, comment this code if you want uppercase characters as well
         if (self.checkboxlower.isChecked()):
             text = text.lower()
         if (self.checkbox.isChecked()):
@@ -665,10 +609,8 @@ class Ui_MainWindow(object):
         pickle.dump(char2int, open(f"{BASENAME}-char2int.pickle", "wb"))
         pickle.dump(int2char, open(f"{BASENAME}-int2char.pickle", "wb"))
         print("after pickle")
-        # convert all text into integers
         encoded_text = np.array([char2int[c] for c in text])
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
-        # construct tf.data.Dataset object
         char_dataset = tf.data.Dataset.from_tensor_slices(encoded_text)
         self.progressBar_7.setValue(self.progressBar_7.value() + 1)
         # print first 5 characters
@@ -693,7 +635,6 @@ class Ui_MainWindow(object):
                 ds = ds.concatenate(other_ds)
             return ds
 
-        # prepare inputs and targets
         print("Flat map", sequences, split_sample)
         dataset = sequences.flat_map(split_sample)
         print("value errror be flat map")
@@ -715,17 +656,12 @@ class Ui_MainWindow(object):
             print("Target shape:", element[1].shape)
             print("=" * 50, "\n")
 
-        # repeat, shuffle and batch the dataset
         ds = dataset.repeat().shuffle(1024).batch(BATCH_SIZE, drop_remainder=True)
         self.progressBar_9.setMaximum((len(encoded_text) - sequence_length) // BATCH_SIZE)
         model = Sequential()
         model.add(LSTM(256, input_shape=(sequence_length, n_unique_chars), return_sequences=True))
-        # model.add(tf.keras.layers.GaussianNoise(temp))
         model.add(Dropout(temp))
         model.add(LSTM(256))
-        # model.add(Dropout(temp))
-        # model.add(Dense(256))
-        # model.add(LSTM(256))
         model.add(Dense(n_unique_chars, activation="softmax"))
         model.summary()
         model.compile(optimizer="adam", loss="categorical_crossentropy")
@@ -860,7 +796,9 @@ class Ui_MainWindow(object):
         elif (self.funktion == 4):
             t = threading.Thread(target=self.generate4(), daemon=True)
             t.start()
-        else:
+        elif(self.funktion==5):
+            t = threading.Thread(target=self.generate5(), daemon=True)
+            t.start()
             print("No funktion selected generator")
 
     def generate4(self):
@@ -1093,17 +1031,12 @@ class Ui_MainWindow(object):
             X = np.zeros((1, sequence_length, vocab_size))
             for t, char in enumerate(seed):
                 X[0, (sequence_length - len(seed)) + t, char2int[char]] = 1
-            # predict the next character
             print("x after :", X)
             predicted2 = model.predict(X, verbose=1)
             predicted = predicted2[0]
-            # print(predicted2)
-            # converting the vector to an integer
             next_index = np.argmax(predicted)
             print(next_index)
-            # converting the integer to a character
             next_char = int2char[next_index]
-            # add the character to results
             if (i > 3):
                 if (generated[-1] == generated[-2] == next_char):
                     i += -1
@@ -1219,8 +1152,6 @@ class OneStep(tf.keras.Model):
         print(input_chars)
         input_ids = self.ids_from_chars(input_chars).to_tensor()
         print(input_ids, "input ids")
-        # Run the model.
-        # predicted_logits.shape is [batch, char, next_char_logits]
         predicted_logits, states = self.model(inputs=input_ids, states=states, return_state=True)
         print(states, "------", predicted_logits)
         # Only use the last prediction.
@@ -1229,14 +1160,11 @@ class OneStep(tf.keras.Model):
         # Apply the prediction mask: prevent "" or "[UNK]" from being generated.
         predicted_logits = predicted_logits + self.prediction_mask
 
-        # Sample the output logits to generate token IDs.
         predicted_ids = tf.random.categorical(predicted_logits, num_samples=1)
         predicted_ids = tf.squeeze(predicted_ids, axis=-1)
 
-        # Convert from token ids to characters
         predicted_chars = self.chars_from_ids(predicted_ids)
 
-        # Return the characters and model state.
         return predicted_chars, states
 
 
