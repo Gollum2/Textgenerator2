@@ -1,0 +1,9 @@
+Wie funktionierts?
+ 
+Man kann text eingeben oder eine Datei auswählen. Dieser Text wird mit verschiedenen Methoden zu Zahalen umgewandelt je nachdem was man in den Settings einstellt. (Z.B. One-Hot encoding-Numerierung der Buchstaben) 
+Eine AI wird mit Sequenzen von zahlen trainiert und soll immer die nächste zahl oder in unserem fall den buchstaben Vorhersagen. 
+Dabei nutzen ich LSTM, Dropout,GRU, Dense und Embedding Layer da diese laut Internet am geeignetstens für solche aufaben sind. 
+Beim klicken auf generate wird ein Wort genomemn und bis zu einer gewissen länge schreibt das Programm den Text weiter. 
+
+Es Wird empfohlen bis zu einem Loss von ca 0.5 oder niedrieger zu gehen da sonst oft keine richtigen wörter entstehen. 
+
